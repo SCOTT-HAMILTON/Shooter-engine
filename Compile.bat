@@ -9,8 +9,15 @@ set param_link=-L%SFMLdir%\lib -L%CD%\deps %lib_dynamic% -o shooter.exe
 
 echo g++ -c main.cpp %param_compile% 
 g++ -c main.cpp %param_compile%
-echo g++ -c Drawer.cpp %param_compile%
-g++ -c Drawer.cpp %param_compile%
-echo g++ main.o Drawer.o %param_link%
-g++ main.o Drawer.o %param_link%
+
+echo g++ -c Entity.cpp %param_compile%
+g++ -c Entity.cpp %param_compile%
+
+echo g++ -c Object.cpp %param_compile%
+g++ -c Object.cpp %param_compile%
+
+echo g++ main.o Entity.o Object.o %param_link%
+g++ main.o Entity.o Object.o %param_link%
 echo Executable created !
+
+del -f *.o

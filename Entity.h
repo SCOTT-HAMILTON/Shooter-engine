@@ -1,9 +1,10 @@
-#ifndef DRAWER_H
-#define DRAWER_H
+#ifndef ENTITY_H
+#define ENTITY_H
 
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <memory>
+#include "Object.h"
 #include "CollisionsManager.h"
 
 struct Triangle{
@@ -19,62 +20,50 @@ struct Line{
 
 enum CalculationMode{GRAPH, SHADER};
 
-class Drawer
+class Entity : public Object
 {
 public:
-    Drawer(sf::Shape &shape, const sf::Vector2f &pos = {0, 0}, const sf::Color &up = sf::Color::White, const sf::Color &down = sf::Color::Black);
-    virtual ~Drawer();
-    void draw(sf::RenderTarget &target);
+    Entity(sf::Shape &shape, const sf::Vector2f &pos = {0, 0}, const sf::Color &up = sf::Color::White, const sf::Color &down = sf::Color::Black);
+    virtual ~Entity();
+    virtual void drawExts(sf::RenderTarget &target);
     int update();
 
     static float y_axe;
     static sf::Color first_color;
     static sf::Color second_color;
-    static CalculationMode mode;
-    static sf::Shader drawer_shader;
+    sf::Shader entity_shader;
 
     void setBase(sf::Shape &shape);
     void move(float x, float y);
     static void updateCollisionManager();
 
-    static bool Collide(const Drawer &dr1, const Drawer &dr2);
+    static bool Collide(const Entity &dr1, const Entity &dr2);
 
     static bool segTouchSeg(const Line &line1, const Line &line2);
     static float detOfP2Line(const Line &l, const sf::Vector2f &p);
     static sf::Color collisionColor;
-    static bool ptInside(const sf::Vector2f &pos, const Drawer &dr);
+    static bool ptInside(const sf::Vector2f &pos, const Entity &dr);
 
-    static std::shared_ptr<Drawer> DrawersList;
+    static void setCollisionManager(const std::shared_ptr<CollisionsManager<idtype, Entity>> &manager);
+
+    static std::shared_ptr<Entity> EntitysList;
     bool inCollision;
 
-    unsigned long long int getMyId();
     static bool PointInTriangle(Triangle t, const sf::Vector2f &P);
 
+    virtual void preDrawUpdate();
+
 private:
-    sf::Vector2u rectSize;
-    sf::Vector2f pos;
-
-    sf::Texture first;
-    sf::Texture second;
-
-    sf::Texture base_text;
-    sf::Sprite base;
-
     sf::Color up_color;
     sf::Color down_color;
-
-    unsigned long long int myid;
-
-    static CollisionsManager<unsigned long long int, Drawer> collisionManager;
-    static unsigned long long int current_id;
-
     sf::Shape &base_shape;
 
     std::vector<Triangle> triangles;
 
     void precalc_values();
 
+    static std::shared_ptr<CollisionsManager<idtype, Entity>> collisionManager;
 };
 
 
-#endif // DRAWER_H
+#endif // ENTITY_H

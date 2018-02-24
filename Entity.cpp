@@ -1,63 +1,49 @@
-#include "Drawer.h"
+#include "Entity.h"
 #include <algorithm>
 
-float Drawer::y_axe = 100.0f;
-sf::Color Drawer::first_color = sf::Color(0, 0, 0);
-sf::Color Drawer::second_color = sf::Color(255, 255, 255);
-CalculationMode Drawer::mode = SHADER;
-sf::Shader Drawer::drawer_shader;
-sf::Color Drawer::collisionColor = sf::Color(255, 0, 0);
-unsigned long long int  Drawer::current_id = 0;
-CollisionsManager<unsigned long long int, Drawer> Drawer::collisionManager = CollisionsManager<unsigned long long int, Drawer>(std::function<bool(Drawer, Drawer)>(&Drawer::Collide));
+float Entity::y_axe = 100.0f;
+sf::Color Entity::first_color = sf::Color(0, 0, 0);
+sf::Color Entity::second_color = sf::Color(255, 255, 255);
+sf::Color Entity::collisionColor = sf::Color(255, 0, 0);
+std::shared_ptr<CollisionsManager<idtype, Entity>> Entity::collisionManager = nullptr;
 
-Drawer::Drawer(sf::Shape &shape, const sf::Vector2f &pos, const sf::Color &up, const sf::Color &down) :
-    base_shape(shape), inCollision(false), up_color(up), down_color(down)
+Entity::Entity(sf::Shape &shape, const sf::Vector2f &pos, const sf::Color &up, const sf::Color &down) :
+    Object(), base_shape(shape), inCollision(false), up_color(up), down_color(down)
 {
     std::cout << "constructor !" << std::endl;
     this->pos = pos;
-    drawer_shader.loadFromFile("shader.frag", sf::Shader::Fragment);
-
+    entity_shader.loadFromFile("shader.frag", sf::Shader::Fragment);
+    state.shader = &entity_shader;
     std::cout << "can Load Shaders : " << (int)sf::Shader::isAvailable() << std::endl;
 
-
-    myid = current_id;
     std::cout << "myid : " << myid << std::endl;
     if (myid){
-        collisionManager.addObject(this, myid);
+        collisionManager->addObject(this, myid);
     }
-
+    if (this->state.shader == nullptr)std::cout << "init noshader" << std::endl;
+    else std::cout << "init with shader" << std::endl;
     setBase(shape);
     if (myid == 1)std::cout << "nb triangles : " << triangles.size() << std::endl;
-    current_id++;
+
+    displayer->addObject(this);
 }
-Drawer::~Drawer()
+Entity::~Entity()
 {
 }
 
-void Drawer::draw(sf::RenderTarget &target){
-    base.setPosition(pos);
-    if (mode == SHADER){
-        if (inCollision){
-            drawer_shader.setUniform("first_color", sf::Glsl::Vec4(collisionColor));
-            drawer_shader.setUniform("second_color", sf::Glsl::Vec4(collisionColor));
-        }else{
-            drawer_shader.setUniform("first_color", sf::Glsl::Vec4(up_color));
-            drawer_shader.setUniform("second_color", sf::Glsl::Vec4(down_color));
-        }
-        drawer_shader.setUniform("y_axe", y_axe);
-
-        drawer_shader.setUniform("texture", sf::Shader::CurrentTexture);
-        target.draw(base, &drawer_shader);
+void Entity::preDrawUpdate(){
+    if (inCollision){
+        entity_shader.setUniform("first_color", sf::Glsl::Vec4(collisionColor));
+        entity_shader.setUniform("second_color", sf::Glsl::Vec4(collisionColor));
     }else{
-        sf::Sprite first_sp, second_sp;
-        first_sp.setTexture(first);
-        second_sp.setTexture(second);
-        first_sp.setPosition(pos.x, pos.y);
-        second_sp.setPosition(pos.x, pos.y+first_sp.getGlobalBounds().height);
-        target.draw(first_sp);
-        target.draw(second_sp);
+        entity_shader.setUniform("first_color", sf::Glsl::Vec4(up_color));
+        entity_shader.setUniform("second_color", sf::Glsl::Vec4(down_color));
     }
+    entity_shader.setUniform("y_axe", y_axe);
+    entity_shader.setUniform("texture", sf::Shader::CurrentTexture);
+}
 
+void Entity::drawExts(sf::RenderTarget &target){
     for (std::size_t i = 0; i < triangles.size(); i++){
         Triangle tmp_t = {
             {triangles[i].p1.x+pos.x, triangles[i].p1.y+pos.y},
@@ -87,69 +73,19 @@ void Drawer::draw(sf::RenderTarget &target){
     }
 }
 
-int Drawer::update(){
-
-    if (mode == SHADER) return 0;
-
-    sf::RenderTexture rend_rect_base;
-    rend_rect_base.create(base.getGlobalBounds().width, base.getGlobalBounds().height);
-    rend_rect_base.draw(base);
-    rend_rect_base.display();
-    sf::IntRect rect;
-    sf::Sprite tmp_sp;
-    sf::RenderTexture rend_text;
-
-    int pc_f = (y_axe-pos.y)*100/base.getGlobalBounds().height;
-    int pc_s = 100-((y_axe-pos.y)*100/base.getGlobalBounds().height);
-    if (pc_f > 100) pc_f = 100;
-    if (pc_f <= 0){
-        rect.height = 0;
-        first = sf::Texture();
-        pc_f = 0;
-    }
-    if (pc_s > 100) pc_s = 100;
-    if (pc_s <= 0){
-        rect.height = 0;
-        second = sf::Texture();
-        pc_s = 0;
-    }
-
-    if (pc_f>0){
-        rect = sf::IntRect(0, 0, base.getGlobalBounds().width, (0, 0, pc_f*base.getGlobalBounds().height/100));
-        tmp_sp.setTexture(rend_rect_base.getTexture());
-        tmp_sp.setTextureRect(rect);
-        tmp_sp.setColor(up_color);
-        rend_text.create(rect.width, rect.height);
-        rend_text.draw(tmp_sp);
-        rend_text.display();
-        first = rend_text.getTexture();
-        rend_text.clear();
-    }
-
-    if (pc_s>0){
-        rect = sf::IntRect(0, pc_f*base.getGlobalBounds().height/100, base.getGlobalBounds().width, (0, 0, pc_s*base.getGlobalBounds().height/100));
-        tmp_sp.setTexture(rend_rect_base.getTexture());
-        tmp_sp.setTextureRect(rect);
-        tmp_sp.setColor(down_color);
-        rend_text.create(rect.width, rect.height);
-        rend_text.draw(tmp_sp);
-        rend_text.display();
-        second = rend_text.getTexture();
-        rend_text.clear();
-    }
+int Entity::update(){
 }
 
-void Drawer::setBase(sf::Shape &shape){
+void Entity::setBase(sf::Shape &shape){
     sf::RenderTexture rend_t;
     rend_t.create(shape.getGlobalBounds().width, shape.getGlobalBounds().height);
     shape.setFillColor(sf::Color(0, 0, 255, 255));
     rend_t.clear(sf::Color::Black);
     rend_t.draw(shape);
     rend_t.display();
-    base_text = sf::Texture(rend_t.getTexture());
-    base.setTexture(base_text);
+    base_texture = sf::Texture(rend_t.getTexture());
     sf::Image tmp_img;
-    tmp_img = base_text.copyToImage();
+    tmp_img = base_texture.copyToImage();
     tmp_img.saveToFile("img1.png");
 
     base_shape = shape;
@@ -157,12 +93,12 @@ void Drawer::setBase(sf::Shape &shape){
     precalc_values();
 }
 
-void Drawer::move(float x, float y){
+void Entity::move(float x, float y){
     pos.x += x;
     pos.y += y;
 }
 
-bool Drawer::Collide(const Drawer &dr1, const Drawer &dr2){
+bool Entity::Collide(const Entity &dr1, const Entity &dr2){
     std::vector<Line> dr1lines;
 
     if (!dr1.base_shape.getGlobalBounds().intersects(dr2.base_shape.getGlobalBounds()))return false;
@@ -204,7 +140,7 @@ bool Drawer::Collide(const Drawer &dr1, const Drawer &dr2){
     return false;
 }
 
-bool Drawer::segTouchSeg(const Line &line1, const Line &line2){
+bool Entity::segTouchSeg(const Line &line1, const Line &line2){
     int a , b, c, d;
     a = static_cast<int>(detOfP2Line(line1, line2.p1));
     b = static_cast<int>(detOfP2Line(line1, line2.p2));
@@ -225,7 +161,7 @@ bool Drawer::segTouchSeg(const Line &line1, const Line &line2){
     return false;
 }
 
-float Drawer::detOfP2Line(const Line &l, const sf::Vector2f &p){
+float Entity::detOfP2Line(const Line &l, const sf::Vector2f &p){
     sf::Vector2f D, T;
     D.x = l.p2.x-l.p1.x;
     D.y = l.p2.y-l.p1.y;
@@ -234,7 +170,7 @@ float Drawer::detOfP2Line(const Line &l, const sf::Vector2f &p){
     return D.x*T.y-D.y*T.x;
 }
 
-bool Drawer::PointInTriangle(Triangle t, const sf::Vector2f &P)
+bool Entity::PointInTriangle(Triangle t, const sf::Vector2f &P)
 {
     float a = detOfP2Line({t.p1, t.p2}, P);
     float b = detOfP2Line({t.p2, t.p3}, P);
@@ -250,7 +186,7 @@ bool Drawer::PointInTriangle(Triangle t, const sf::Vector2f &P)
     return true;
 }
 
-bool Drawer::ptInside(const sf::Vector2f &pPos, const Drawer &dr){
+bool Entity::ptInside(const sf::Vector2f &pPos, const Entity &dr){
     int nb_in = 0;
     for (std::size_t i = 0; i < dr.triangles.size(); i++){
         Triangle tmp_t = {
@@ -263,12 +199,8 @@ bool Drawer::ptInside(const sf::Vector2f &pPos, const Drawer &dr){
     return false;
 }
 
-void Drawer::updateCollisionManager(){
-    collisionManager.update();
-}
-
-unsigned long long int Drawer::getMyId(){
-    return myid;
+void Entity::updateCollisionManager(){
+    collisionManager->update();
 }
 
 std::size_t sommet_gauche(const std::vector<sf::Vector2f> &polygone){
@@ -295,8 +227,8 @@ int sommet_distance_maximale(const std::vector<sf::Vector2f> &polygone, const sf
     for (std::size_t i = 0; i < polygone.size(); i++){
         if (std::find(indices.begin(), indices.end(), i) == indices.end()){
             sf::Vector2f M = polygone[i];
-            if (Drawer::PointInTriangle({P0,P1,P2}, M)){
-                float d = std::abs( Drawer::detOfP2Line({P1,P2},M) );
+            if (Entity::PointInTriangle({P0,P1,P2}, M)){
+                float d = std::abs( Entity::detOfP2Line({P1,P2},M) );
                 if (d > distance){
                     distance = d;
                     j = i;
@@ -359,7 +291,7 @@ void trianguler(const std::vector<sf::Vector2f> &polygone, std::vector<Triangle>
     }
 }
 
-void Drawer::precalc_values() {
+void Entity::precalc_values() {
 
     if (myid != 0){
         triangles.clear();
@@ -372,4 +304,8 @@ void Drawer::precalc_values() {
         std::cout << "---------" << std::endl;
         std::cout << "" << std::endl;
     }
+}
+
+void Entity::setCollisionManager(const std::shared_ptr<CollisionsManager<idtype, Entity>> &manager){
+    collisionManager = manager;
 }

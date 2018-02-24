@@ -1,20 +1,29 @@
 #include <iostream>
 #include <SFML/Graphics.hpp>
-#include "Drawer.h"
+#include "Entity.h"
+#include "CollisionsManager.h"
+#include "Displayer.h"
 
 int main()
 {
 
+    std::shared_ptr<Displayer<Object>> displayer;
+    displayer = std::make_shared<Displayer<Object>>();
+    Object::setDisplayer(displayer);
+
+    std::shared_ptr<CollisionsManager<idtype, Entity>> collisionManager;
+    collisionManager = std::make_shared<CollisionsManager<idtype, Entity>>(&Entity::Collide);
+    Entity::setCollisionManager(collisionManager);
+
     sf::RenderWindow fenetre(sf::VideoMode(800, 600), "SFML shooter");
-    fenetre.setFramerateLimit(60);
+    fenetre.setFramerateLimit(130);
     sf::Event event;
 
     sf::RectangleShape base(sf::Vector2f(fenetre.getSize().x, fenetre.getSize().y));
-    Drawer base_dr(base, {0, 0}, sf::Color(0, 0, 0), sf::Color(255, 255, 255));
+    Entity base_dr(base, {0, 0}, sf::Color(0, 0, 0), sf::Color(255, 255, 255));
 
-    //sf::CircleShape circle_base(100);
-    sf::RectangleShape circle_base(sf::Vector2f(60, 100));
-    Drawer circle(circle_base, {400, 10}, sf::Color(255, 255, 255), sf::Color(0, 0, 0));
+    sf::CircleShape circle_base(100);
+    Entity circle(circle_base, {400, 10}, sf::Color(255, 255, 255), sf::Color(0, 0, 0));
 
     sf::ConvexShape etoile_base;
     int scale = 100;
@@ -29,13 +38,13 @@ int main()
     etoile_base.setPoint(7, sf::Vector2f(3*scale, 2*scale));
     etoile_base.setPoint(8, sf::Vector2f(4*scale, 1*scale));
     etoile_base.setPoint(9, sf::Vector2f(3*scale, 1*scale));
-    Drawer etoile(etoile_base, {300, 300}, sf::Color(50, 255, 25), sf::Color(0, 212, 50));
+    Entity etoile(etoile_base, {300, 300}, sf::Color(50, 255, 25), sf::Color(0, 212, 50));
 
     sf::RectangleShape rect_base(sf::Vector2f(50 , 50));
-    Drawer rect(rect_base, {300, 300}, sf::Color(0, 212, 50), sf::Color(11, 66, 50));
+    Entity rect(rect_base, {300, 300}, sf::Color(0, 212, 50), sf::Color(11, 66, 50));
 
-    int drawer_sign = -1;
-    float drawer_speed = 3;
+    int Entity_sign = -1;
+    float Entity_speed = 3;
     float y_speed = 5;
     float x_speed = y_speed;
     bool pause = false;
@@ -58,24 +67,16 @@ int main()
             }
         }
 
-        Drawer::updateCollisionManager();
+        Entity::updateCollisionManager();
 
-        if (!pause)Drawer::y_axe -= drawer_speed*drawer_sign;
-        if (Drawer::y_axe > fenetre.getSize().y || Drawer::y_axe <= 0){
-            drawer_sign = drawer_sign-(drawer_sign*2);
-            Drawer::y_axe -= drawer_speed*drawer_sign;
+        if (!pause)Entity::y_axe -= Entity_speed*Entity_sign;
+        if (Entity::y_axe > fenetre.getSize().y || Entity::y_axe <= 0){
+            Entity_sign = Entity_sign-(Entity_sign*2);
+            Entity::y_axe -= Entity_speed*Entity_sign;
         }
 
-        if (Drawer::ptInside(static_cast<sf::Vector2f>(sf::Mouse::getPosition(fenetre)), etoile)){
-            //std::cout << "in !!" << std::endl;
-        }//else  std::cout << "out !!" << std::endl;
-
         fenetre.clear(sf::Color::White);
-        base_dr.draw(fenetre);
-        rect.draw(fenetre);
-        etoile.draw(fenetre);
-        circle.draw(fenetre);
-
+        displayer->drawbjects(fenetre);
         fenetre.display();
     }
 

@@ -45,6 +45,7 @@ public:
         last_update.restart();
         for (auto i = objects.begin(); i != objects.end(); i++){
             i->second->inCollision = false;
+            i->second->update();
         }
         for (auto i = objects.begin(); i != objects.end(); i++){
             for (auto j = i; j != objects.end(); j++){
@@ -52,8 +53,10 @@ public:
                     auto &tmp_dr1 = (*(i->second));
                     auto &tmp_dr2 = (*(j->second));
                     if (fctCollide( tmp_dr1, tmp_dr2 )){
-                        i->second->inCollision = true;
-                        j->second->inCollision = true;
+                        i->second->setPos(i->second->getPrecPos());
+                        j->second->setPos(j->second->getPrecPos());
+                        i->second->stopMoves();
+                        j->second->stopMoves();
                     }
                 }
 

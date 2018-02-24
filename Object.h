@@ -25,14 +25,14 @@ public:
     Object();
     virtual ~Object();
     virtual void drawExts(sf::RenderTarget &target){}
-    virtual void preDrawUpdate(){
-    }
+    virtual void preDrawUpdate(){}
 
     idtype getMyId();
 
     static void setDisplayer(const std::shared_ptr<Displayer<Object>> &displayer);
     const sf::Texture &getTexture();
     const sf::Vector2f &getPos();
+    void setPos(const sf::Vector2f &pos);
     const sf::RenderStates &getRenderStates();
 
 protected:
@@ -42,6 +42,7 @@ protected:
     sf::RenderStates state;
 
     static idtype current_id;
+    static bool debug_mode;
     idtype myid;
 
     static std::shared_ptr<Displayer<Object>> displayer;

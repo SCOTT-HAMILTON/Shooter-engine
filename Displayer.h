@@ -28,10 +28,8 @@ public:
     Displayer<T>(){}
     virtual ~Displayer(){}
     void drawbjects(sf::RenderTarget &target){
-        //std::cout << "    " << std::endl;
         for (auto it = objects.begin(); it != objects.end(); it++){
             it->second->preDrawUpdate();
-            //std::cout << "texture : " << it->second->getTexture().getSize().x << ", " << it->second->getTexture().getSize().y << std::endl;
             sf::Sprite sp(it->second->getTexture());
             sp.setPosition(it->second->getPos());
             target.draw(sp, it->second->getRenderStates());

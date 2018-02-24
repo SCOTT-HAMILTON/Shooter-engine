@@ -19,12 +19,15 @@ sf::Color Entity::first_color = sf::Color(0, 0, 0);
 sf::Color Entity::second_color = sf::Color(255, 255, 255);
 sf::Color Entity::collisionColor = sf::Color(255, 0, 0);
 std::shared_ptr<CollisionsManager<idtype, Entity>> Entity::collisionManager = nullptr;
+float Entity::gravity = 3.0f;
 
-Entity::Entity(sf::Shape &shape, const sf::Vector2f &pos, const sf::Color &up, const sf::Color &down) :
-    Object(), base_shape(shape), inCollision(false), up_color(up), down_color(down)
+Entity::Entity(sf::Shape &shape, const sf::Vector2f &pos, const sf::Color &up, const sf::Color &down, bool canMove) :
+    Object(), base_shape(shape), inCollision(false), up_color(up), down_color(down),
+    air_break(0.2, 0.2)
 {
     std::cout << "constructor !" << std::endl;
     this->pos = pos;
+    this->canMove = canMove;
     entity_shader.loadFromFile("shader.frag", sf::Shader::Fragment);
     state.shader = &entity_shader;
     std::cout << "can Load Shaders : " << (int)sf::Shader::isAvailable() << std::endl;
@@ -39,6 +42,9 @@ Entity::Entity(sf::Shape &shape, const sf::Vector2f &pos, const sf::Color &up, c
     if (myid == 1)std::cout << "nb triangles : " << triangles.size() << std::endl;
 
     displayer->addObject(this);
+
+    wanted_pos = pos;
+    prec_pos = pos;
 }
 Entity::~Entity()
 {
@@ -57,36 +63,49 @@ void Entity::preDrawUpdate(){
 }
 
 void Entity::drawExts(sf::RenderTarget &target){
-    for (std::size_t i = 0; i < triangles.size(); i++){
-        Triangle tmp_t = {
-            {triangles[i].p1.x+pos.x, triangles[i].p1.y+pos.y},
-            {triangles[i].p2.x+pos.x, triangles[i].p2.y+pos.y},
-            {triangles[i].p3.x+pos.x, triangles[i].p3.y+pos.y}
-        };
-        sf::Color t_color = sf::Color(255, 0, 0, 255);
-        sf::Vertex l1[] = {
-            sf::Vertex(tmp_t.p1, t_color),
-            sf::Vertex(tmp_t.p2, t_color)
-        };
+    if (debug_mode){
+        for (std::size_t i = 0; i < triangles.size(); i++){
+            Triangle tmp_t = {
+                {triangles[i].p1.x+pos.x, triangles[i].p1.y+pos.y},
+                {triangles[i].p2.x+pos.x, triangles[i].p2.y+pos.y},
+                {triangles[i].p3.x+pos.x, triangles[i].p3.y+pos.y}
+            };
+            sf::Color t_color = sf::Color(255, 0, 0, 255);
+            sf::Vertex l1[] = {
+                sf::Vertex(tmp_t.p1, t_color),
+                sf::Vertex(tmp_t.p2, t_color)
+            };
 
-        sf::Vertex l2[] = {
-            sf::Vertex(tmp_t.p2, t_color),
-            sf::Vertex(tmp_t.p3, t_color)
-        };
+            sf::Vertex l2[] = {
+                sf::Vertex(tmp_t.p2, t_color),
+                sf::Vertex(tmp_t.p3, t_color)
+            };
 
-        sf::Vertex l3[] = {
-            sf::Vertex(tmp_t.p3, t_color),
-            sf::Vertex(tmp_t.p1, t_color)
-        };
+            sf::Vertex l3[] = {
+                sf::Vertex(tmp_t.p3, t_color),
+                sf::Vertex(tmp_t.p1, t_color)
+            };
 
-        target.draw(l1, 2, sf::Lines);
-        target.draw(l2, 2, sf::Lines);
-        target.draw(l3, 2, sf::Lines);
+            target.draw(l1, 2, sf::Lines);
+            target.draw(l2, 2, sf::Lines);
+            target.draw(l3, 2, sf::Lines);
 
+        }
     }
 }
 
 int Entity::update(){
+    if (!canMove)return 0;
+    prec_pos = pos;
+    pos = wanted_pos;
+    wanted_pos.x += speed.x;
+    wanted_pos.y += speed.y;
+    float speed_x_b = speed.x;
+    float speed_y_b = speed.y;
+    speed.x += (0-speed.x)*air_break.x;
+    speed.y += (0-speed.y)*air_break.y+gravity;
+    if ((speed_x_b<0&&speed.x>0)||(speed_x_b>0&&speed.x<0) || std::abs(speed.x) < 0.1)speed.x = 0;
+    if ((speed_y_b<0&&speed.y>0)||(speed_y_b>0&&speed.y<0) || std::abs(speed.y) < 0.1)speed.y = 0;
 }
 
 void Entity::setBase(sf::Shape &shape){
@@ -107,8 +126,8 @@ void Entity::setBase(sf::Shape &shape){
 }
 
 void Entity::move(float x, float y){
-    pos.x += x;
-    pos.y += y;
+    if (x != 0)speed.x = x;
+    if (y != 0)speed.y = y;
 }
 
 bool Entity::Collide(const Entity &dr1, const Entity &dr2){
@@ -321,4 +340,19 @@ void Entity::precalc_values() {
 
 void Entity::setCollisionManager(const std::shared_ptr<CollisionsManager<idtype, Entity>> &manager){
     collisionManager = manager;
+}
+
+const sf::Vector2f &Entity::getWantedPos(){
+    return wanted_pos;
+}
+
+const sf::Vector2f &Entity::getPrecPos(){
+    return prec_pos;
+
+}
+
+void Entity::stopMoves(){
+    speed.x = 0;
+    speed.y = 0;
+    wanted_pos = pos;
 }

@@ -52,34 +52,41 @@ int main()
     etoile_base.setPoint(7, sf::Vector2f(3*scale, 2*scale));
     etoile_base.setPoint(8, sf::Vector2f(4*scale, 1*scale));
     etoile_base.setPoint(9, sf::Vector2f(3*scale, 1*scale));
-    Entity etoile(etoile_base, {300, 300}, sf::Color(50, 255, 25), sf::Color(0, 212, 50));
+    Entity etoile(etoile_base, {300, 300}, sf::Color(200, 200, 25), sf::Color(75, 75, 212));
 
     sf::RectangleShape rect_base(sf::Vector2f(50 , 50));
-    Entity rect(rect_base, {300, 300}, sf::Color(0, 212, 50), sf::Color(11, 66, 50));
+    Entity rect(rect_base, {300, 300}, sf::Color(0, 212, 50), sf::Color(11, 66, 50), true);
 
     int Entity_sign = -1;
     float Entity_speed = 3;
-    float y_speed = 5;
+    float y_speed = 10;
     float x_speed = y_speed;
     bool pause = false;
+    float dt = 0;
+
+    sf::Clock c;
 
     while (fenetre.isOpen()){
         while (fenetre.pollEvent(event)){
             if (event.type == sf::Event::Closed) fenetre.close();
             if (event.type == sf::Event::KeyPressed){
-                if (event.key.code == sf::Keyboard::Up){
-                    rect.move(0, -y_speed);
-                }else if (event.key.code == sf::Keyboard::Down){
-                    rect.move(0, y_speed);
-                }else if (event.key.code == sf::Keyboard::Left){
-                    rect.move(-x_speed, 0);
-                }else if (event.key.code == sf::Keyboard::Right){
-                    rect.move(x_speed, 0);
-                }else if (event.key.code == sf::Keyboard::P){
+                if (event.key.code == sf::Keyboard::P){
                     pause = !pause;
                 }
             }
         }
+
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)){
+            rect.move(0, -y_speed*dt);
+        }if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)){
+            rect.move(0, y_speed*dt);
+        }if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)){
+            rect.move(-x_speed*dt, 0);
+        }if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)){
+            rect.move(x_speed*dt, 0);
+        }
+
+        dt = c.restart().asMicroseconds()*0.0001f;
 
         Entity::updateCollisionManager();
 

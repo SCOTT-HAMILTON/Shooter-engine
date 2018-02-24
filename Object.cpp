@@ -15,6 +15,7 @@
 
 idtype  Object::current_id = 0;
 std::shared_ptr<Displayer<Object>> Object::displayer = nullptr;
+bool Object::debug_mode = false;
 
 Object::Object()
 {
@@ -44,4 +45,8 @@ const sf::Vector2f &Object::getPos(){
 
 const sf::RenderStates &Object::getRenderStates(){
     return state;
+}
+
+void Object::setPos(const sf::Vector2f &pos){
+    this->pos = pos;
 }

@@ -1,3 +1,16 @@
+/*
+    Scott Hamilton alias ScottHDev (13 years old)
+    24 / 02 / 2018
+
+    Little 2D Shooter-Engine
+
+    Big thank's to Frederic Legrand
+    for his nice website :
+    http://www.f-legrand.fr/scidoc/docmml/graphie/geometrie/polygone/polygone.html
+    to give us nice and easy maths formulas like this one who
+    divide a complexe polygone in little triangles.
+*/
+
 #include "Entity.h"
 #include <algorithm>
 
